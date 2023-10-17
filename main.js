@@ -34,7 +34,7 @@ d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data =
         function resetAllCountries() {
             svg.selectAll("path")
                 .style("stroke", "#000")
-                .style("stroke-width", 0.5)
+                .style("stroke-width", 0.3)
                 .style("opacity", 1);
         }
 
@@ -50,25 +50,26 @@ d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data =
                 return broadband ? colorScale(broadband) : "#ccc";
             })
             .style("stroke", "#000")
-            .style("stroke-width", 0.5)
+            .style("stroke-width", 0.3)
             .style("opacity", 1)
             .on("mouseover", function (event, d) {   // Hover effect starts here
                 d3.select(this)
                     .style("stroke", "#ff0000")  // Darker stroke on hover
-                    .style("stroke-width", 3);  // Slightly thicker stroke on hover
+                    .style("stroke-width", 2);  // Slightly thicker stroke on hover
 
                 tooltip.transition()
                     .duration(200)
                     .style("opacity", .9);
-                tooltip.html(`${d.properties.name}<br>${broadbandByCountry[d.properties.name] ? broadbandByCountry[d.properties.name] + ' Megabyte/s' : 'Data N/A'}`)
+                tooltip.html(`${d.properties.name}<br>${broadbandByCountry[d.properties.name] ? Math.round((broadbandByCountry[d.properties.name] + Number.EPSILON) * 100) / 100 + ' Megabyte / sec' : 'Data N/A'}`)
                     .style("left", (event.pageX + 28) + "px")
                     .style("top", (event.pageY - 50) + "px");
+
 
             })
             .on("mouseout", function (event, d) {
                 d3.select(this)
                     .style("stroke", "#000")  // Reset stroke color on hover out
-                    .style("stroke-width", 0.5)  // Reset stroke width on hover out
+                    .style("stroke-width", 0.3)  // Reset stroke width on hover out
             })    // Hover effect ends here
             .on("click", function (event, d) {
                 event.stopPropagation();
@@ -85,7 +86,7 @@ d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data =
 
                 let broadband = broadbandByCountry[d.properties.name];
 
-                animateDownloadBar(broadband, colorScale(broadband))
+                animateDownloadBar(broadband)
 
             });
 
@@ -108,8 +109,8 @@ d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data =
             .attr("y", -10)  // position above the legend
             .attr("text-anchor", "middle")
             .style("font-weight", "bold")
-            .style("font-size", "16px")
-            .text("Megabyte/s");
+            .style("font-size", "15px")
+            .text("Megabyte / second");
 
         // Define the linear gradient for the legend
         let gradient = legend.append("defs")
@@ -202,16 +203,24 @@ d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data =
 function resetAllCountries() {
     svg.selectAll("path")
         .style("stroke", "#000")
-        .style("stroke-width", 0.5)
+        .style("stroke-width", 0.3)
         .style("opacity", 1);
 }
 
 let downloadBar = d3.select("#downloadBar");
+let downloadBarContainer = d3.select("#downloadBarContainer")
 
-function animateDownloadBar(broadbandInMbPerSecond, color) {
+let animationFrameId = null; // Store the ID returned by requestAnimationFrame
+
+function animateDownloadBar(broadbandInMbPerSecond) {
+    // If an animation is ongoing, cancel it
+    if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+
     downloadBar.interrupt();
-    downloadBar.style("width", "0").text("");  // Clear text to ensure we don't see text when bar width is very small.
-    downloadBar.style("background-color", color)
+    downloadBar.style("width", "0").text("");
 
     if (!broadbandInMbPerSecond) {
         return;
@@ -233,33 +242,49 @@ function animateDownloadBar(broadbandInMbPerSecond, color) {
     const ms = (fileSizeInMb / broadbandInMbPerSecond) * 1000; // milliseconds
 
     let startTime = Date.now();
-    let endTime = startTime + ms;
+    let lastUpdate = 0;
+    let lastPercentage = 0;
 
-    downloadBar.transition()
-        .duration(ms)
-        .ease(d3.easeLinear)
-        .style("width", "100%")
-        .on("end", function () {
-            downloadBar.text("100% (" + Math.round(ms / 1000) + " s / " + Math.round(ms / 1000) + " s)");
-        })
-        .tween("progress", function () {
-            return function (t) {
-                // Update text less frequently (e.g., every 10% or when near the start)
-                if (t < 0.05 || Math.round(t * 100) % 10 === 0) {
-                    let elapsed = Date.now() - startTime;
-                    let elapsedSeconds = Math.round(elapsed / 1000);
+    function updateText(elapsedMs) {
+        let percentage = Math.min(100, (elapsedMs / ms) * 100);
+        let elapsedSeconds = Math.round(elapsedMs / 1000);
+        let totalSeconds = Math.round(ms / 1000);
 
-                    let textToShow = Math.round(t * 100) + "% (" + elapsedSeconds + " s / " + Math.round(ms / 1000) + " s)";
+        if (Math.floor(percentage) !== lastPercentage) {
+            lastPercentage = Math.floor(percentage);
+            let textToShow = `${lastPercentage}% (${elapsedSeconds} s / ${totalSeconds} s)`;
 
-                    if (t < 0.05) {
-                        textToShow = Math.round(t * 100) + "%"; // Show minimal text at the start to prevent overflow
-                    }
+            downloadBar.text(textToShow);
+        }
 
-                    downloadBar.text(textToShow);
-                }
-            };
-        });
+        downloadBar.style("width", percentage + "%");
+    }
+
+    function animate() {
+        let elapsed = Date.now() - startTime;
+
+        if (elapsed >= ms) {
+            updateText(ms);
+            animationFrameId = null; // Reset the animation ID
+            return; // stop the animation
+        }
+
+        if (Date.now() - lastUpdate >= 1000 || Math.floor((elapsed / ms) * 100) !== lastPercentage) {
+            lastUpdate = Date.now();
+            updateText(elapsed);
+        } else {
+            let percentage = Math.min(100, (elapsed / ms) * 100);
+            downloadBar.style("width", percentage + "%");
+        }
+
+        animationFrameId = requestAnimationFrame(animate); // Store the ID returned by requestAnimationFrame
+    }
+
+    animate();
 }
+
+
+
 
 
 
