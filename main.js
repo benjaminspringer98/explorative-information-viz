@@ -60,7 +60,7 @@ d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data =
                 tooltip.transition()
                     .duration(200)
                     .style("opacity", .9);
-                tooltip.html(`${d.properties.name}<br>${broadbandByCountry[d.properties.name] ? Math.round((broadbandByCountry[d.properties.name] + Number.EPSILON) * 100) / 100 + ' Megabyte / sec' : 'Data N/A'}`)
+                tooltip.html(`${d.properties.name}<br>${broadbandByCountry[d.properties.name] ? Math.round((broadbandByCountry[d.properties.name] + Number.EPSILON) * 100) / 100 + ' MB / sec' : 'Data N/A'}`)
                     .style("left", (event.pageX + 28) + "px")
                     .style("top", (event.pageY - 50) + "px");
 
@@ -110,7 +110,7 @@ d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data =
             .attr("text-anchor", "middle")
             .style("font-weight", "bold")
             .style("font-size", "15px")
-            .text("Megabyte / second");
+            .text("Megabytes / second");
 
         // Define the linear gradient for the legend
         let gradient = legend.append("defs")
@@ -208,7 +208,6 @@ function resetAllCountries() {
 }
 
 let downloadBar = d3.select("#downloadBar");
-let downloadBarContainer = d3.select("#downloadBarContainer")
 
 let animationFrameId = null; // Store the ID returned by requestAnimationFrame
 
@@ -250,14 +249,16 @@ function animateDownloadBar(broadbandInMbPerSecond) {
         let elapsedSeconds = Math.round(elapsedMs / 1000);
         let totalSeconds = Math.round(ms / 1000);
 
-        if (Math.floor(percentage) !== lastPercentage) {
-            lastPercentage = Math.floor(percentage);
-            let textToShow = `${lastPercentage}% (${elapsedSeconds} s / ${totalSeconds} s)`;
-
-            downloadBar.text(textToShow);
-        }
-
+        lastPercentage = Math.floor(percentage);
+        // Show percentage inside the bar
+        downloadBar.text(`${lastPercentage}%`);
         downloadBar.style("width", percentage + "%");
+
+        let elapsedFormatted = formatTime(elapsedSeconds);
+        let totalFormatted = formatTime(totalSeconds);
+        // Display time info below the bar
+        let timeInfo = document.getElementById("timeInfo");
+        timeInfo.textContent = `(${elapsedFormatted ? elapsedFormatted : "0 sec"} / ${totalFormatted} total)`;
     }
 
     function animate() {
@@ -281,6 +282,30 @@ function animateDownloadBar(broadbandInMbPerSecond) {
     }
 
     animate();
+}
+
+function formatTime(seconds) {
+    let hours = Math.floor(seconds / 3600);
+    seconds %= 3600;
+    let minutes = Math.floor(seconds / 60);
+    let sec = seconds % 60;
+
+    let timeStr = `${hours ? hours + " h " : ""} ${minutes ? minutes + " min " : ""} ${sec ? sec + " sec " : ""}`;
+
+    // Add hours if any
+    // if (hours) {
+    //     timeStr += `${hours} h`;
+    // }
+
+    // // Add minutes if any
+    // if (minutes || hours) {
+    //     timeStr += `${minutes} min`;
+    // }
+
+    // // Add seconds
+    // timeStr += `${remainingSeconds} sec`;
+
+    return timeStr.trim();
 }
 
 

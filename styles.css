@@ -7,6 +7,14 @@ h2 {
     text-align: center;
 }
 
+#downloadForm {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 10px;
+}
+
+
 input[type=number],
 select {
     border: 1px solid lightgray;
@@ -34,4 +42,9 @@ select {
     white-space: nowrap;
     overflow: hidden;
     color: white;
+}
+
+#timeInfo {
+    text-align: center;
+    margin-top: 5px;
 }
