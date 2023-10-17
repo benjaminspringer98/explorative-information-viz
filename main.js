@@ -96,11 +96,20 @@ d3.csv("internet-speeds-by-country-2023.csv").then(data => {
             }
         });
 
-        let legendWidth = 450;
-        let legendHeight = 25;
+        const legendWidth = 350;
+        const legendHeight = 25;
 
         let legend = svg.append("g")
             .attr("transform", `translate(${width - legendWidth - 20}, ${height - legendHeight - 20})`);
+
+        legend.append("text")
+            .attr("class", "legendTitle")
+            .attr("x", legendWidth / 2)  // center the title
+            .attr("y", -10)  // position above the legend
+            .attr("text-anchor", "middle")
+            .style("font-weight", "bold")
+            .style("font-size", "16px")
+            .text("Megabit/s");
 
         // Define the linear gradient for the legend
         let gradient = legend.append("defs")
@@ -112,29 +121,14 @@ d3.csv("internet-speeds-by-country-2023.csv").then(data => {
             .attr("y2", "100%")
             .attr("spreadMethod", "pad");
 
-        // Define the start of gradient
-        gradient.append("stop")
-            .attr("offset", "0%")
-            .attr("stop-color", colorScale(0))
-            .attr("stop-opacity", 1);
-
-        gradient.append("stop")
-            .attr("offset", "33%")
-            .attr("stop-color", colorScale(100))
-            .attr("stop-opacity", 1);
-
-        // Define the end of gradient
-        gradient.append("stop")
-            .attr("offset", "66%")
-            .attr("stop-color", colorScale(200))
-            .attr("stop-opacity", 1);
-
-        gradient.append("stop")
-            .attr("offset", "100%")
-            .attr("stop-color", colorScale(300))
-            .attr("stop-opacity", 1);
-
-
+        const max = 300;
+        const step = 50
+        for (let i = 0; i <= max; i += step) {
+            gradient.append("stop")
+                .attr("offset", `${i / max * 100}%`)
+                .attr("stop-color", colorScale(i))
+                .attr("stop-opacity", 1);
+        }
 
         // Add a rectangle filled with the gradient
         legend.append("rect")
@@ -155,6 +149,14 @@ d3.csv("internet-speeds-by-country-2023.csv").then(data => {
 
         legend.append("text")
             .attr("class", "legendText")
+            .attr("x", legendWidth / 6)
+            .attr("y", legendHeight + 10)
+            .attr("dy", ".35em")
+            .style("text-anchor", "start")
+            .text("50");
+
+        legend.append("text")
+            .attr("class", "legendText")
             .attr("x", legendWidth / 3)
             .attr("y", legendHeight + 10)
             .attr("dy", ".35em")
@@ -163,24 +165,39 @@ d3.csv("internet-speeds-by-country-2023.csv").then(data => {
 
         legend.append("text")
             .attr("class", "legendText")
-            .attr("x", legendWidth / 3 * 2)
+            .attr("x", legendWidth / 2)
+            .attr("y", legendHeight + 10)
+            .attr("dy", ".35em")
+            .style("text-anchor", "start")
+            .text("150");
+
+        legend.append("text")
+            .attr("class", "legendText")
+            .attr("x", legendWidth * 2 / 3)
             .attr("y", legendHeight + 10)
             .attr("dy", ".35em")
             .style("text-anchor", "start")
             .text("200");
 
-        console.log(colorScale(100))
+        legend.append("text")
+            .attr("class", "legendText")
+            .attr("x", legendWidth * 2.5 / 3)
+            .attr("y", legendHeight + 10)
+            .attr("dy", ".35em")
+            .style("text-anchor", "start")
+            .text("250");
+
+        console.log(legendWidth * 2.5 / 3)
 
         legend.append("text")
             .attr("class", "legendText")
-            .attr("x", legendWidth)
+            .attr("x", legendWidth + 15)
             .attr("y", legendHeight + 10)
             .attr("dy", ".35em")
             .style("text-anchor", "end")
             .text(`300`);
 
     });
-
 
 });
 
