@@ -18,7 +18,7 @@ function zoomed(event) {
     svg.selectAll('path').attr('transform', event.transform);
 }
 
-d3.csv("internet-speeds-by-country-2023.csv").then(data => {
+d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data => {
     let broadbandByCountry = {};
     data.forEach(d => {
         broadbandByCountry[d.country] = +d.broadband;
@@ -60,7 +60,7 @@ d3.csv("internet-speeds-by-country-2023.csv").then(data => {
                 tooltip.transition()
                     .duration(200)
                     .style("opacity", .9);
-                tooltip.html(`${d.properties.name}<br>${broadbandByCountry[d.properties.name] ? broadbandByCountry[d.properties.name] + ' Mbps' : 'Data N/A'}`)
+                tooltip.html(`${d.properties.name}<br>${broadbandByCountry[d.properties.name] ? broadbandByCountry[d.properties.name] + ' Megabyte/s' : 'Data N/A'}`)
                     .style("left", (event.pageX + 28) + "px")
                     .style("top", (event.pageY - 50) + "px");
 
@@ -84,9 +84,9 @@ d3.csv("internet-speeds-by-country-2023.csv").then(data => {
                     .style("opacity", 1);
 
                 let broadband = broadbandByCountry[d.properties.name];
-                // if(broadband) {
-                //     animateDownloadBar(broadband);
-                // }
+
+                animateDownloadBar(broadband, colorScale(broadband))
+
             });
 
         // Reset all countries when clicked outside of a country path
@@ -109,7 +109,7 @@ d3.csv("internet-speeds-by-country-2023.csv").then(data => {
             .attr("text-anchor", "middle")
             .style("font-weight", "bold")
             .style("font-size", "16px")
-            .text("Megabit/s");
+            .text("Megabyte/s");
 
         // Define the linear gradient for the legend
         let gradient = legend.append("defs")
@@ -121,8 +121,8 @@ d3.csv("internet-speeds-by-country-2023.csv").then(data => {
             .attr("y2", "100%")
             .attr("spreadMethod", "pad");
 
-        const max = 300;
-        const step = 50
+        const max = 30;
+        const step = 5
         for (let i = 0; i <= max; i += step) {
             gradient.append("stop")
                 .attr("offset", `${i / max * 100}%`)
@@ -153,7 +153,7 @@ d3.csv("internet-speeds-by-country-2023.csv").then(data => {
             .attr("y", legendHeight + 10)
             .attr("dy", ".35em")
             .style("text-anchor", "start")
-            .text("50");
+            .text("5");
 
         legend.append("text")
             .attr("class", "legendText")
@@ -161,7 +161,7 @@ d3.csv("internet-speeds-by-country-2023.csv").then(data => {
             .attr("y", legendHeight + 10)
             .attr("dy", ".35em")
             .style("text-anchor", "start")
-            .text("100");
+            .text("10");
 
         legend.append("text")
             .attr("class", "legendText")
@@ -169,7 +169,7 @@ d3.csv("internet-speeds-by-country-2023.csv").then(data => {
             .attr("y", legendHeight + 10)
             .attr("dy", ".35em")
             .style("text-anchor", "start")
-            .text("150");
+            .text("15");
 
         legend.append("text")
             .attr("class", "legendText")
@@ -177,7 +177,7 @@ d3.csv("internet-speeds-by-country-2023.csv").then(data => {
             .attr("y", legendHeight + 10)
             .attr("dy", ".35em")
             .style("text-anchor", "start")
-            .text("200");
+            .text("20");
 
         legend.append("text")
             .attr("class", "legendText")
@@ -185,9 +185,7 @@ d3.csv("internet-speeds-by-country-2023.csv").then(data => {
             .attr("y", legendHeight + 10)
             .attr("dy", ".35em")
             .style("text-anchor", "start")
-            .text("250");
-
-        console.log(legendWidth * 2.5 / 3)
+            .text("25");
 
         legend.append("text")
             .attr("class", "legendText")
@@ -195,7 +193,7 @@ d3.csv("internet-speeds-by-country-2023.csv").then(data => {
             .attr("y", legendHeight + 10)
             .attr("dy", ".35em")
             .style("text-anchor", "end")
-            .text(`300`);
+            .text(`30`);
 
     });
 
@@ -208,4 +206,60 @@ function resetAllCountries() {
         .style("opacity", 1);
 }
 
-// The other functions (dragstarted, dragged, calculateDownloadTime, animateDownloadBar) remain unchanged...
+let downloadBar = d3.select("#downloadBar");
+
+function animateDownloadBar(broadbandInMbPerSecond, color) {
+    downloadBar.interrupt();
+    downloadBar.style("width", "0").text("");  // Clear text to ensure we don't see text when bar width is very small.
+    downloadBar.style("background-color", color)
+
+    if (!broadbandInMbPerSecond) {
+        return;
+    }
+
+    let fileSize = Number(document.getElementById("fileSize").value);
+    let fileUnit = document.getElementById("fileUnit").value;
+
+    let fileSizeInMb;
+    switch (fileUnit) {
+        case "MB":
+            fileSizeInMb = fileSize;
+            break;
+        case "GB":
+            fileSizeInMb = fileSize * 1000;
+            break;
+    }
+
+    const ms = (fileSizeInMb / broadbandInMbPerSecond) * 1000; // milliseconds
+
+    let startTime = Date.now();
+    let endTime = startTime + ms;
+
+    downloadBar.transition()
+        .duration(ms)
+        .ease(d3.easeLinear)
+        .style("width", "100%")
+        .on("end", function () {
+            downloadBar.text("100% (" + Math.round(ms / 1000) + " s / " + Math.round(ms / 1000) + " s)");
+        })
+        .tween("progress", function () {
+            return function (t) {
+                // Update text less frequently (e.g., every 10% or when near the start)
+                if (t < 0.05 || Math.round(t * 100) % 10 === 0) {
+                    let elapsed = Date.now() - startTime;
+                    let elapsedSeconds = Math.round(elapsed / 1000);
+
+                    let textToShow = Math.round(t * 100) + "% (" + elapsedSeconds + " s / " + Math.round(ms / 1000) + " s)";
+
+                    if (t < 0.05) {
+                        textToShow = Math.round(t * 100) + "%"; // Show minimal text at the start to prevent overflow
+                    }
+
+                    downloadBar.text(textToShow);
+                }
+            };
+        });
+}
+
+
+
