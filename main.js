@@ -1,13 +1,13 @@
 let svg = d3.select("#worldMap");
 let width = +svg.attr("width");
 let height = +svg.attr("height");
+let downloadBar = d3.select("#downloadBar");
 
 let projection = d3.geoMercator().scale(150).translate([width / 2, height / 2]);
 let path = d3.geoPath().projection(projection);
 
 let selectedCountry;
 
-// Zoom behavior
 let zoom = d3.zoom()
     .scaleExtent([1, 10])
     .on('zoom', zoomed);
@@ -16,6 +16,23 @@ svg.call(zoom);
 
 function zoomed(event) {
     svg.selectAll('path').attr('transform', event.transform);
+}
+
+function resetAllCountries() {
+    svg.selectAll("path")
+        .style("stroke", "#000")
+        .style("stroke-width", 0.3)
+        .style("opacity", 1);
+}
+
+function formatTime(seconds) {
+    let hours = Math.floor(seconds / 3600);
+    seconds %= 3600;
+    let minutes = Math.floor(seconds / 60);
+    let sec = seconds % 60;
+
+    let timeStr = `${hours ? hours + " h " : ""} ${minutes ? minutes + " min " : ""} ${sec ? sec + " sec " : ""}`;
+    return timeStr.trim();
 }
 
 d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data => {
@@ -28,16 +45,6 @@ d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data =
         const countries = topojson.feature(world, world.objects.countries).features;
 
         let colorScale = d3.scaleQuantize([0, d3.max(data, d => Number(d.broadband))], d3.schemeGreens[9]);
-
-        // Function to reset the appearance of all countries
-
-        function resetAllCountries() {
-            svg.selectAll("path")
-                .style("stroke", "#000")
-                .style("stroke-width", 0.3)
-                .style("opacity", 1);
-        }
-
 
         let tooltip = d3.select("#tooltip");
 
@@ -52,42 +59,45 @@ d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data =
             .style("stroke", "#000")
             .style("stroke-width", 0.3)
             .style("opacity", 1)
-            .on("mouseover", function (event, d) {   // Hover effect starts here
-                d3.select(this)
-                    .style("stroke", "#ff0000")  // Darker stroke on hover
-                    .style("stroke-width", 2);  // Slightly thicker stroke on hover
-
-                tooltip.transition()
+            // start hover effect
+            .on("mouseover", function (event, d) {
+                d3.select(this) // change color
+                    .style("fill", "#fa4343");
+                tooltip.transition() // show tooltip
                     .duration(200)
                     .style("opacity", .9);
                 tooltip.html(`${d.properties.name}<br>${broadbandByCountry[d.properties.name] ? Math.round((broadbandByCountry[d.properties.name] + Number.EPSILON) * 100) / 100 + ' MB / sec' : 'Data N/A'}`)
                     .style("left", (event.pageX + 28) + "px")
                     .style("top", (event.pageY - 50) + "px");
-
-
             })
+            // stop hover effect
             .on("mouseout", function (event, d) {
-                d3.select(this)
-                    .style("stroke", "#000")  // Reset stroke color on hover out
-                    .style("stroke-width", 0.3)  // Reset stroke width on hover out
-            })    // Hover effect ends here
+                d3.select(this) // reset color
+                    .style("fill", d => {
+                        let broadband = broadbandByCountry[d.properties.name];
+                        return broadband ? colorScale(broadband) : "#ccc";
+                    });
+                tooltip.transition() // hide tooltip
+                    .duration(500)
+                    .style("opacity", 0);
+            })
             .on("click", function (event, d) {
                 event.stopPropagation();
-
                 resetAllCountries();
 
-                svg.selectAll("path")
+                d3.select(this) // change color
+                    .style("fill", "#f50a0a");
+                svg.selectAll("path") // reduce opacity of another countries
                     .style("opacity", 0.2);
 
                 d3.select(this)
                     .style("stroke", "black")
-                    .style("stroke-width", 2)
+                    .style("stroke-width", 1)
                     .style("opacity", 1);
 
                 let broadband = broadbandByCountry[d.properties.name];
 
                 animateDownloadBar(broadband)
-
             });
 
         // Reset all countries when clicked outside of a country path
@@ -97,33 +107,34 @@ d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data =
             }
         });
 
-        const legendWidth = 350;
-        const legendHeight = 25;
+        const legendHeight = 300;
+        const legendWidth = 20;
+
 
         let legend = svg.append("g")
-            .attr("transform", `translate(${width - legendWidth - 20}, ${height - legendHeight - 20})`);
+            .attr("transform", `translate(50, ${height / 2 - legendHeight / 2})`); // Vertically centered and to the left side
 
         legend.append("text")
             .attr("class", "legendTitle")
-            .attr("x", legendWidth / 2)  // center the title
-            .attr("y", -10)  // position above the legend
-            .attr("text-anchor", "middle")
+            .attr("x", -50)
+            .attr("y", -20)
+            .attr("text-anchor", "start")
             .style("font-weight", "bold")
             .style("font-size", "15px")
-            .text("Megabytes / second");
+            .text("Megabyte / second");
 
-        // Define the linear gradient for the legend
+        // Define the vertical gradient for the legend
         let gradient = legend.append("defs")
             .append("linearGradient")
             .attr("id", "gradient")
             .attr("x1", "0%")
             .attr("y1", "100%")
-            .attr("x2", "100%")
-            .attr("y2", "100%")
+            .attr("x2", "0%")
+            .attr("y2", "0%")
             .attr("spreadMethod", "pad");
 
         const max = 30;
-        const step = 5
+        const step = 5;
         for (let i = 0; i <= max; i += step) {
             gradient.append("stop")
                 .attr("offset", `${i / max * 100}%`)
@@ -131,7 +142,7 @@ d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data =
                 .attr("stop-opacity", 1);
         }
 
-        // Add a rectangle filled with the gradient
+        // Add a rectangle filled with the vertical gradient
         legend.append("rect")
             .attr("width", legendWidth)
             .attr("height", legendHeight)
@@ -139,75 +150,22 @@ d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data =
             .style("stroke", "#000")
             .style("stroke-width", 1);
 
-        // Add text to the start of legend
-        legend.append("text")
-            .attr("class", "legendText")
-            .attr("x", 0)
-            .attr("y", legendHeight + 10)
-            .attr("dy", ".35em")
-            .style("text-anchor", "start")
-            .text("0");
-
-        legend.append("text")
-            .attr("class", "legendText")
-            .attr("x", legendWidth / 6)
-            .attr("y", legendHeight + 10)
-            .attr("dy", ".35em")
-            .style("text-anchor", "start")
-            .text("5");
-
-        legend.append("text")
-            .attr("class", "legendText")
-            .attr("x", legendWidth / 3)
-            .attr("y", legendHeight + 10)
-            .attr("dy", ".35em")
-            .style("text-anchor", "start")
-            .text("10");
-
-        legend.append("text")
-            .attr("class", "legendText")
-            .attr("x", legendWidth / 2)
-            .attr("y", legendHeight + 10)
-            .attr("dy", ".35em")
-            .style("text-anchor", "start")
-            .text("15");
-
-        legend.append("text")
-            .attr("class", "legendText")
-            .attr("x", legendWidth * 2 / 3)
-            .attr("y", legendHeight + 10)
-            .attr("dy", ".35em")
-            .style("text-anchor", "start")
-            .text("20");
-
-        legend.append("text")
-            .attr("class", "legendText")
-            .attr("x", legendWidth * 2.5 / 3)
-            .attr("y", legendHeight + 10)
-            .attr("dy", ".35em")
-            .style("text-anchor", "start")
-            .text("25");
-
-        legend.append("text")
-            .attr("class", "legendText")
-            .attr("x", legendWidth + 15)
-            .attr("y", legendHeight + 10)
-            .attr("dy", ".35em")
-            .style("text-anchor", "end")
-            .text(`30`);
+        // Adjust the legend labels for the vertical orientation
+        const labels = [0, 5, 10, 15, 20, 25, 30];
+        const labelYPositions = labels.map(l => legendHeight - (l / max * legendHeight));
+        labelYPositions.forEach((pos, i) => {
+            legend.append("text")
+                .attr("class", "legendText")
+                .attr("x", legendWidth + 5)
+                .attr("y", pos)
+                .attr("dy", ".35em")
+                .style("text-anchor", "start")
+                .text(labels[i]);
+        });
 
     });
 
 });
-
-function resetAllCountries() {
-    svg.selectAll("path")
-        .style("stroke", "#000")
-        .style("stroke-width", 0.3)
-        .style("opacity", 1);
-}
-
-let downloadBar = d3.select("#downloadBar");
 
 let animationFrameId = null; // Store the ID returned by requestAnimationFrame
 
@@ -284,29 +242,44 @@ function animateDownloadBar(broadbandInMbPerSecond) {
     animate();
 }
 
-function formatTime(seconds) {
-    let hours = Math.floor(seconds / 3600);
-    seconds %= 3600;
-    let minutes = Math.floor(seconds / 60);
-    let sec = seconds % 60;
 
-    let timeStr = `${hours ? hours + " h " : ""} ${minutes ? minutes + " min " : ""} ${sec ? sec + " sec " : ""}`;
+// Get the modal and its elements
+const modal = document.getElementById('myModal');
+const btn = document.getElementById('openModalBtn');
+const span = document.getElementsByClassName('close')[0];
 
-    // Add hours if any
-    // if (hours) {
-    //     timeStr += `${hours} h`;
-    // }
-
-    // // Add minutes if any
-    // if (minutes || hours) {
-    //     timeStr += `${minutes} min`;
-    // }
-
-    // // Add seconds
-    // timeStr += `${remainingSeconds} sec`;
-
-    return timeStr.trim();
+btn.onclick = function () {
+    modal.style.display = 'block';
+    setTimeout(function () {
+        modal.style.opacity = '1'; // Fade in the modal
+        modal.querySelector('.modal-content').style.opacity = '1'; // Fade in the modal content
+    }, 10); // Short delay to ensure that display:block has been applied first
 }
+
+// When the user clicks on <span> (x), close the modal
+span.onclick = function () {
+    modal.style.opacity = '0'; // Fade out the modal
+    modal.querySelector('.modal-content').style.opacity = '0'; // Fade out the modal content
+    setTimeout(function () {
+        modal.style.display = 'none';
+    }, 300); // Delay equal to the transition duration
+}
+
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function (event) {
+    if (event.target === modal) {
+        modal.style.opacity = '0'; // Fade out the modal
+        modal.querySelector('.modal-content').style.opacity = '0'; // Fade out the modal content
+        setTimeout(function () {
+            modal.style.display = 'none';
+        }, 300); // Delay equal to the transition duration
+    }
+}
+
+
+
+
+
 
 
 

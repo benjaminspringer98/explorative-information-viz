@@ -15,6 +15,29 @@
 
 <h1>Mean Broadband Speed by Country</h1>
 
+<div class="top-right">
+    <button id="openModalBtn" class="round-btn"><i class="fa-solid fa-circle-info"></i></button>
+</div>
+
+<div id="myModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <p>The visualization shows the mean broadband speed of countries worldwide, in Megabytes per second.</p>
+        <p><strong>Drag and zoom</strong> around the map to explore different countries.</p>
+        <p><strong>Hover</strong> over a country to see its' name and broadband speed.</p>
+        <p><strong>Choose a file size</strong> and <strong>click</strong> on a country to experience the broadband speed for yourself.</p>
+        <hr>
+        <p>
+            The visualization was made within the scope of the lecture <i>Explorative Information Visualization</i> at Aalto University, by Benjamin Springer.
+            The dataset can be requested
+            <a href="https://worldpopulationreview.com/country-rankings/internet-speeds-by-country" target="_blank">
+                here.
+            </a> Note that it was originally in Megabits per second, but was changed to Megabytes per second, because people are used to this notation from daily experiences (e.g., downloading a file
+            of 100 Megabytes rather than 800 Megabits).
+        </p>
+    </div>
+</div>
+
 <div style="display: flex; flex-direction: column; align-items: center;">
     <svg id="worldMap" width="1280" height="550"></svg>
 </div>
@@ -37,9 +60,8 @@
     <div id="downloadBar" style="width: 0; height: 100%; background-color: #4CAF50; text-align: center; line-height: 30px;"></div>
 </div> -->
 
-
-<script src="main.js">
-</script>
+<script src="https://kit.fontawesome.com/1d46db14be.js" crossorigin="anonymous"></script>
+<script src="main.js"></script>
 </body>
 
 </html>
