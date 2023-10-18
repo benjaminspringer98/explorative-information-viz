@@ -11,13 +11,16 @@ h2 {
     border-radius: 5px;
 }
 
+svg {
+    border: 1px solid lightgray;
+}
+
 #downloadForm {
     display: flex;
     justify-content: center;
     align-items: center;
     margin: 10px;
 }
-
 
 input[type=number],
 select {
@@ -26,6 +29,9 @@ select {
     padding: 8px;
 }
 
+label {
+    margin: 5px;
+}
 
 #downloadBarContainer {
     width: 100%;
@@ -131,6 +137,6 @@ select {
 }
 
 .fa-solid {
-    font-size: 35px;
+    font-size: 40px;
     vertical-align: middle;
 }

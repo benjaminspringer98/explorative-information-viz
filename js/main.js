@@ -1,14 +1,12 @@
-let svg = d3.select("#worldMap");
-let width = +svg.attr("width");
-let height = +svg.attr("height");
-let downloadBar = d3.select("#downloadBar");
+const svg = d3.select("#worldMap");
+const width = +svg.attr("width");
+const height = +svg.attr("height");
+const downloadBar = d3.select("#downloadBar");
+const projection = d3.geoMercator().scale(150).translate([width / 2, height / 2]);
+const path = d3.geoPath().projection(projection);
+const timeInfo = document.getElementById("timeInfo");
 
-let projection = d3.geoMercator().scale(150).translate([width / 2, height / 2]);
-let path = d3.geoPath().projection(projection);
-
-let selectedCountry;
-
-let zoom = d3.zoom()
+const zoom = d3.zoom()
     .scaleExtent([1, 10])
     .on('zoom', zoomed);
 
@@ -26,27 +24,25 @@ function resetAllCountries() {
 }
 
 function formatTime(seconds) {
-    let hours = Math.floor(seconds / 3600);
+    const hours = Math.floor(seconds / 3600);
     seconds %= 3600;
-    let minutes = Math.floor(seconds / 60);
-    let sec = seconds % 60;
+    const minutes = Math.floor(seconds / 60);
+    const sec = seconds % 60;
 
-    let timeStr = `${hours ? hours + " h " : ""} ${minutes ? minutes + " min " : ""} ${sec ? sec + " sec " : ""}`;
+    const timeStr = `${hours ? hours + " h " : ""} ${minutes ? minutes + " min " : ""} ${sec ? sec + " sec " : ""}`;
     return timeStr.trim();
 }
 
-d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data => {
-    let broadbandByCountry = {};
+d3.csv("data/internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data => {
+    const broadbandByCountry = {};
     data.forEach(d => {
         broadbandByCountry[d.country] = +d.broadband;
     });
 
     d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(world => {
         const countries = topojson.feature(world, world.objects.countries).features;
-
-        let colorScale = d3.scaleQuantize([0, d3.max(data, d => Number(d.broadband))], d3.schemeGreens[9]);
-
-        let tooltip = d3.select("#tooltip");
+        const colorScale = d3.scaleQuantize([0, d3.max(data, d => Number(d.broadband))], d3.schemeGreens[9]);
+        const tooltip = d3.select("#tooltip");
 
         svg.selectAll("path")
             .data(countries)
@@ -85,18 +81,19 @@ d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data =
                 event.stopPropagation();
                 resetAllCountries();
 
-                d3.select(this) // change color
-                    .style("fill", "#f50a0a");
-                svg.selectAll("path") // reduce opacity of another countries
+                svg.selectAll("path") // reduce opacity of other countries
                     .style("opacity", 0.2);
 
                 d3.select(this)
+                    .style("fill", "#f50a0a")
                     .style("stroke", "black")
-                    .style("stroke-width", 1)
+                    .style("stroke-width", 0.7)
                     .style("opacity", 1);
 
-                let broadband = broadbandByCountry[d.properties.name];
-
+                const broadband = broadbandByCountry[d.properties.name];
+                if (!broadband) {
+                    timeInfo.textContent = "No data";
+                }
                 animateDownloadBar(broadband)
             });
 
@@ -109,22 +106,20 @@ d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data =
 
         const legendHeight = 300;
         const legendWidth = 20;
-
-
-        let legend = svg.append("g")
-            .attr("transform", `translate(50, ${height / 2 - legendHeight / 2})`); // Vertically centered and to the left side
+        const legend = svg.append("g")
+            .attr("transform", `translate(50, ${height / 2 - legendHeight / 2})`);
 
         legend.append("text")
             .attr("class", "legendTitle")
-            .attr("x", -50)
+            .attr("x", -45)
             .attr("y", -20)
             .attr("text-anchor", "start")
             .style("font-weight", "bold")
             .style("font-size", "15px")
-            .text("Megabyte / second");
+            .text("Megabytes / second");
 
         // Define the vertical gradient for the legend
-        let gradient = legend.append("defs")
+        const gradient = legend.append("defs")
             .append("linearGradient")
             .attr("id", "gradient")
             .attr("x1", "0%")
@@ -150,7 +145,6 @@ d3.csv("internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(data =
             .style("stroke", "#000")
             .style("stroke-width", 1);
 
-        // Adjust the legend labels for the vertical orientation
         const labels = [0, 5, 10, 15, 20, 25, 30];
         const labelYPositions = labels.map(l => legendHeight - (l / max * legendHeight));
         labelYPositions.forEach((pos, i) => {
@@ -183,8 +177,8 @@ function animateDownloadBar(broadbandInMbPerSecond) {
         return;
     }
 
-    let fileSize = Number(document.getElementById("fileSize").value);
-    let fileUnit = document.getElementById("fileUnit").value;
+    const fileSize = Number(document.getElementById("fileSize").value);
+    const fileUnit = document.getElementById("fileUnit").value;
 
     let fileSizeInMb;
     switch (fileUnit) {
@@ -198,29 +192,28 @@ function animateDownloadBar(broadbandInMbPerSecond) {
 
     const ms = (fileSizeInMb / broadbandInMbPerSecond) * 1000; // milliseconds
 
-    let startTime = Date.now();
+    const startTime = Date.now();
     let lastUpdate = 0;
     let lastPercentage = 0;
 
     function updateText(elapsedMs) {
-        let percentage = Math.min(100, (elapsedMs / ms) * 100);
-        let elapsedSeconds = Math.round(elapsedMs / 1000);
-        let totalSeconds = Math.round(ms / 1000);
+        const percentage = Math.min(100, (elapsedMs / ms) * 100);
+        const elapsedSeconds = Math.round(elapsedMs / 1000);
+        const totalSeconds = Math.round(ms / 1000);
 
         lastPercentage = Math.floor(percentage);
         // Show percentage inside the bar
         downloadBar.text(`${lastPercentage}%`);
         downloadBar.style("width", percentage + "%");
 
-        let elapsedFormatted = formatTime(elapsedSeconds);
-        let totalFormatted = formatTime(totalSeconds);
+        const elapsedFormatted = formatTime(elapsedSeconds);
+        const totalFormatted = formatTime(totalSeconds);
         // Display time info below the bar
-        let timeInfo = document.getElementById("timeInfo");
         timeInfo.textContent = `(${elapsedFormatted ? elapsedFormatted : "0 sec"} / ${totalFormatted} total)`;
     }
 
     function animate() {
-        let elapsed = Date.now() - startTime;
+        const elapsed = Date.now() - startTime;
 
         if (elapsed >= ms) {
             updateText(ms);
@@ -232,7 +225,7 @@ function animateDownloadBar(broadbandInMbPerSecond) {
             lastUpdate = Date.now();
             updateText(elapsed);
         } else {
-            let percentage = Math.min(100, (elapsed / ms) * 100);
+            const percentage = Math.min(100, (elapsed / ms) * 100);
             downloadBar.style("width", percentage + "%");
         }
 
@@ -241,48 +234,3 @@ function animateDownloadBar(broadbandInMbPerSecond) {
 
     animate();
 }
-
-
-// Get the modal and its elements
-const modal = document.getElementById('myModal');
-const btn = document.getElementById('openModalBtn');
-const span = document.getElementsByClassName('close')[0];
-
-btn.onclick = function () {
-    modal.style.display = 'block';
-    setTimeout(function () {
-        modal.style.opacity = '1'; // Fade in the modal
-        modal.querySelector('.modal-content').style.opacity = '1'; // Fade in the modal content
-    }, 10); // Short delay to ensure that display:block has been applied first
-}
-
-// When the user clicks on <span> (x), close the modal
-span.onclick = function () {
-    modal.style.opacity = '0'; // Fade out the modal
-    modal.querySelector('.modal-content').style.opacity = '0'; // Fade out the modal content
-    setTimeout(function () {
-        modal.style.display = 'none';
-    }, 300); // Delay equal to the transition duration
-}
-
-// When the user clicks anywhere outside of the modal, close it
-window.onclick = function (event) {
-    if (event.target === modal) {
-        modal.style.opacity = '0'; // Fade out the modal
-        modal.querySelector('.modal-content').style.opacity = '0'; // Fade out the modal content
-        setTimeout(function () {
-            modal.style.display = 'none';
-        }, 300); // Delay equal to the transition duration
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
