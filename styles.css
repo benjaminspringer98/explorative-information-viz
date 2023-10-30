@@ -109,6 +109,16 @@ label {
     transition: opacity 0.3s 0.1s;
 }
 
+@media only screen and (max-width: 768px) {
+    .modal-content {
+        width: 90%;
+        max-width: 400px;
+        height: 80vh;
+        overflow-y: auto;
+        transform: translate(-50%, -50%);
+    }
+}
+
 .close {
     position: absolute;
     top: 5px;
