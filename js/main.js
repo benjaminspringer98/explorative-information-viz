@@ -4,7 +4,12 @@ const height = +svg.attr("height");
 const downloadBar = d3.select("#downloadBar");
 const projection = d3.geoMercator().scale(150).translate([width / 2, height / 2]);
 const path = d3.geoPath().projection(projection);
-const timeInfo = document.getElementById("timeInfo");
+const timeInfo = document.getElementById("  ");
+
+const colors = {
+    hover: "#0D98BA",
+    clicked: "#0D98BA",
+}
 
 const zoom = d3.zoom()
     .scaleExtent([1, 10])
@@ -58,7 +63,7 @@ d3.csv("data/internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(d
             // start hover effect
             .on("mouseover", function (event, d) {
                 d3.select(this) // change color
-                    .style("fill", "#fa4343");
+                    .style("fill", colors.hover);
                 tooltip.transition() // show tooltip
                     .duration(200)
                     .style("opacity", .9);
@@ -85,7 +90,7 @@ d3.csv("data/internet-speeds-by-country-2023-in-megabyte-per-second.csv").then(d
                     .style("opacity", 0.2);
 
                 d3.select(this)
-                    .style("fill", "#f50a0a")
+                    .style("fill", colors.clicked)
                     .style("stroke", "black")
                     .style("stroke-width", 0.7)
                     .style("opacity", 1);
