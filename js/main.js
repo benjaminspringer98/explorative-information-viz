@@ -4,7 +4,7 @@ const height = +svg.attr("height");
 const downloadBar = d3.select("#downloadBar");
 const projection = d3.geoMercator().scale(150).translate([width / 2, height / 2]);
 const path = d3.geoPath().projection(projection);
-const timeInfo = document.getElementById("  ");
+const timeInfo = document.getElementById("timeInfo");
 
 const colors = {
     hover: "#0D98BA",
