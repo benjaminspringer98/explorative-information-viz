@@ -18,9 +18,9 @@ The following interactions are possible:
 - Online: available
   [here](https://benjaminspringer98.github.io/explorative-information-viz/)
 - Locally:
-  - Install the free code ditor VSCode and download the Live Server extension.
-  - Clone the project, open the project folder in VSCode, and click the "Go
-    Live" button in the bottom right
+  1. Install the free code editor VSCode and download the Live Server extension.
+  2. If accessing through git: clone the project
+  3. Open the project folder in VSCode, and click the "Go Live" button in the bottom right
 
 ## Notes
 
